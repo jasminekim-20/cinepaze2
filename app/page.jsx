@@ -178,17 +178,25 @@ function getTags(film) {
     .filter(Boolean);
 }
 
-function getStats(watchedFilms) {
+function getStats(watchedFilms = []) {
+  const safeFilms = Array.isArray(watchedFilms) ? watchedFilms : [];
+
   const tagCount = {};
   const directorCount = {};
   const countryCount = {};
 
-  watchedFilms.forEach((film) => {
+  safeFilms.forEach((film) => {
     getTags(film).forEach((tag) => {
       tagCount[tag] = (tagCount[tag] || 0) + 1;
     });
-    if (film.director) directorCount[film.director] = (directorCount[film.director] || 0) + 1;
-    if (film.country) countryCount[film.country] = (countryCount[film.country] || 0) + 1;
+
+    if (film.director) {
+      directorCount[film.director] = (directorCount[film.director] || 0) + 1;
+    }
+
+    if (film.country) {
+      countryCount[film.country] = (countryCount[film.country] || 0) + 1;
+    }
   });
 
   const sort = (obj) =>
@@ -513,9 +521,10 @@ function AuthGate({ setUser, setWatchedFilms }) {
   );
 }
 
-function TasteShardsMatch({ user, watchedFilms, setPage }) {
-  const stats = getStats(watchedFilms);
-  const sourceFilms = watchedFilms.length ? watchedFilms : sampleFilms;
+function TasteShardsMatch({ user, watchedFilms = [], setPage }) {
+  const safeWatchedFilms = Array.isArray(watchedFilms) ? watchedFilms : [];
+  const stats = getStats(safeWatchedFilms);
+  const sourceFilms = safeWatchedFilms.length ? safeWatchedFilms : sampleFilms;
   const userTags = stats.tags.length
     ? stats.tags.map((tag) => tag.name)
     : ["왕가위", "홍콩 누아르", "여성 서사", "1990s", "몽환적 분위기", "필름 그레인"];
@@ -549,11 +558,11 @@ function TasteShardsMatch({ user, watchedFilms, setPage }) {
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#f472b6] to-[#f0c46b]" />
             <div>
-              <p className="text-2xl font-black text-white">{user.nickname}</p>
+              <p className="text-2xl font-black text-white">{user?.nickname || "user"}</p>
               <p className="text-sm text-zinc-500">cinephile</p>
             </div>
             <div className="ml-auto grid h-16 w-16 place-items-center rounded-full border border-[#ff4fa3]/50 bg-[#ff4fa3]/10 text-lg font-black text-[#ff4fa3]">
-              {Math.min(70 + watchedFilms.length * 4, 96)}%
+              {Math.min(70 + safeWatchedFilms.length * 4, 96)}%
             </div>
           </div>
 
@@ -712,8 +721,16 @@ function TasteShardsMatch({ user, watchedFilms, setPage }) {
   );
 }
 
-function HomePage({ user, watchedFilms, setPage }) {
-  return <TasteShardsMatch user={user} watchedFilms={watchedFilms} setPage={setPage} />;
+function HomePage({ user, watchedFilms = [], setPage }) {
+  const safeWatchedFilms = Array.isArray(watchedFilms) ? watchedFilms : [];
+
+  return (
+    <TasteShardsMatch
+      user={user}
+      watchedFilms={safeWatchedFilms}
+      setPage={setPage}
+    />
+  );
 }
 
 function latLonToVector3(lat, lon, radius = 2) {
@@ -761,9 +778,10 @@ function Earth({ mapFilms }) {
   );
 }
 
-function CinemaMapPage({ watchedFilms }) {
-  const mapFilms = watchedFilms.map(normaliseFilm);
-  const stats = getStats(watchedFilms);
+function CinemaMapPage({ watchedFilms = [] }) {
+  const safeWatchedFilms = Array.isArray(watchedFilms) ? watchedFilms : [];
+  const mapFilms = safeWatchedFilms.map(normaliseFilm);
+  const stats = getStats(safeWatchedFilms);
 
   return (
     <div className="grid gap-5 xl:grid-cols-[280px_1fr_340px]">
@@ -925,7 +943,8 @@ function CinemaMapPage({ watchedFilms }) {
   );
 }
 
-function MyPage({ user, setUser, watchedFilms, setWatchedFilms }) {
+function MyPage({ user, setUser, watchedFilms = [], setWatchedFilms }) {
+  const safeWatchedFilms = Array.isArray(watchedFilms) ? watchedFilms : [];
   const [form, setForm] = useState({
     title: "",
     director: "",
@@ -937,7 +956,7 @@ function MyPage({ user, setUser, watchedFilms, setWatchedFilms }) {
     status: "봤어요",
   });
 
-  const stats = getStats(watchedFilms);
+  const stats = getStats(safewatchedFilms);
 
   function update(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -962,7 +981,7 @@ function MyPage({ user, setUser, watchedFilms, setWatchedFilms }) {
       createdAt: new Date().toLocaleString("ko-KR"),
     };
 
-    const next = [newFilm, ...watchedFilms];
+    const next = [newFilm, ...safewatchedFilms];
     setWatchedFilms(next);
     saveLocal(`cinepaze_watched_${user.id}`, next);
     setForm({
@@ -997,7 +1016,7 @@ function MyPage({ user, setUser, watchedFilms, setWatchedFilms }) {
 
           <div className="mt-6 grid grid-cols-3 gap-3">
             {[
-              ["기록 영화", watchedFilms.length],
+              ["기록 영화", safewatchedFilms.length],
               ["취향 태그", stats.tags.length],
               ["감독", stats.directors.length],
             ].map(([label, value]) => (
@@ -1078,7 +1097,7 @@ function MyPage({ user, setUser, watchedFilms, setWatchedFilms }) {
             </div>
           ) : (
             <div className="mt-5 grid gap-4 md:grid-cols-2">
-              {watchedFilms.map((film) => (
+              {safewatchedFilms.map((film) => (
                 <div key={film.id} className="rounded-3xl border border-white/10 bg-white/[.035] p-4">
                   <div className="flex gap-4">
                     <MiniPoster title={film.title} color={film.color} className="h-24 w-20 shrink-0" />
@@ -1517,7 +1536,8 @@ export default function Page() {
 
     if (savedUser) {
       setUser(savedUser);
-      setWatchedFilms(loadLocal(`cinepaze_watched_${savedUser.id}`, []));
+      const savedFilms = loadLocal(`cinepaze_watched_${savedUser.id}`, []);
+      setWatchedFilms(Array.isArray(savedFilms) ? savedFilms : []);
     }
   }, []);
 
