@@ -1109,43 +1109,62 @@ function CinemaMapPage({ watchedFilms }) {
       </Card>
 
       <div className="space-y-5">
-        <Card className="p-5">
-          <p className="text-xs font-black uppercase tracking-[.3em] text-[#f0c46b]">Intersections</p>
-          <h3 className="mt-2 text-xl font-black text-white">교집합 분석</h3>
-          <div className="mt-4 space-y-4">
-            {mapFilms.length === 0 ? (
-  <div className="rounded-2xl border border-white/10 bg-white/[.03] p-5 text-sm leading-6 text-zinc-500">
-    아직 기록된 영화가 없습니다. 마이페이지에서 본 영화를 기록하면 이곳에 표시됩니다.
-  </div>
-) : (
-  mapFilms.slice(0, 4).map((film) => (
-    <div key={film.id || film.title} className="rounded-2xl border border-white/10 bg-white/[.03] p-3">
-      <div className="flex items-center gap-3">
-        <MiniPoster title={film.title} color={film.color} className="h-16 w-12 shrink-0" />
-        <div className="flex-1">
-          <p className="font-black text-white">{film.title}</p>
-          <p className="text-xs text-zinc-500">{film.director}</p>
+  <Card className="p-5">
+    <p className="text-xs font-black uppercase tracking-[.3em] text-[#f0c46b]">
+      Intersections
+    </p>
+    <h3 className="mt-2 text-xl font-black text-white">교집합 분석</h3>
+
+    <div className="mt-4 space-y-4">
+      {mapFilms.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-white/[.03] p-5 text-sm leading-6 text-zinc-500">
+          아직 기록된 영화가 없습니다. 마이페이지에서 본 영화를 기록하면 이곳에 표시됩니다.
         </div>
-        <p className="font-black" style={{ color: film.color }}>
-          {film.score || "-"}%
-        </p>
-      </div>
-    </div>
-  ))
-)}
-              <div key={film.title} className="rounded-2xl border border-white/10 bg-white/[.03] p-3">
-                <div className="flex items-center gap-3">
-                  <MiniPoster title={film.title} color={film.color} className="h-16 w-12 shrink-0" />
-                  <div className="flex-1">
-                    <p className="font-black text-white">{film.title}</p>
-                    <p className="text-xs text-zinc-500">{film.director}</p>
-                  </div>
-                  <p className="font-black" style={{ color: film.color }}>{film.score}%</p>
-                </div>
+      ) : (
+        mapFilms.slice(0, 4).map((film) => (
+          <div
+            key={film.id || film.title}
+            className="rounded-2xl border border-white/10 bg-white/[.03] p-3"
+          >
+            <div className="flex items-center gap-3">
+              <MiniPoster
+                title={film.title}
+                color={film.color || "#ff4fa3"}
+                className="h-16 w-12 shrink-0"
+              />
+              <div className="flex-1">
+                <p className="font-black text-white">{film.title}</p>
+                <p className="text-xs text-zinc-500">{film.director}</p>
               </div>
-            ))}
+              <p
+                className="font-black"
+                style={{ color: film.color || "#ff4fa3" }}
+              >
+                {film.score || "-"}%
+              </p>
+            </div>
           </div>
-        </Card>
+        ))
+      )}
+    </div>
+  </Card>
+
+  <Card className="p-5">
+    <PanelTitle title="Similar Users" />
+    <div className="mt-4 space-y-3">
+      {["film_digger_83", "무비토리", "cinephile_j"].map((u, i) => (
+        <div key={u} className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-900" />
+          <div className="flex-1">
+            <p className="text-sm font-black text-white">{u}</p>
+            <p className="text-xs text-zinc-500">취향이 비슷한 사용자</p>
+          </div>
+          <span className="text-sm text-zinc-300">{92 - i * 3}%</span>
+        </div>
+      ))}
+    </div>
+  </Card>
+</div>
 
         <Card className="p-5">
           <PanelTitle title="Similar Users" />
