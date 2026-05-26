@@ -1035,12 +1035,18 @@ function Earth({ mapFilms }) {
 
 function CinemaMapPage({ watchedFilms }) {
   const mapFilms = watchedFilms.length > 0 ? watchedFilms : [];
+
   return (
     <div className="grid gap-5 xl:grid-cols-[280px_1fr_340px]">
       <div className="space-y-5">
         <Card className="p-5">
-          <p className="text-xs font-black uppercase tracking-[.3em] text-[#c084fc]">Taste DNA</p>
-          <h3 className="mt-2 text-xl font-black text-white">당신을 설명하는 키워드</h3>
+          <p className="text-xs font-black uppercase tracking-[.3em] text-[#c084fc]">
+            Taste DNA
+          </p>
+          <h3 className="mt-2 text-xl font-black text-white">
+            당신을 설명하는 키워드
+          </h3>
+
           <div className="mt-5 space-y-4">
             {[
               ["가족", 92, "#f472b6"],
@@ -1049,14 +1055,17 @@ function CinemaMapPage({ watchedFilms }) {
               ["성장", 77, "#60a5fa"],
               ["사회비판", 73, "#f0c46b"],
               ["느린 호흡", 71, "#c084fc"],
-            ].map(([a, b, c]) => (
-              <div key={a}>
+            ].map(([name, value, color]) => (
+              <div key={name}>
                 <div className="mb-1 flex justify-between text-xs">
-                  <span className="text-zinc-300">{a}</span>
-                  <span className="font-black text-white">{b}%</span>
+                  <span className="text-zinc-300">{name}</span>
+                  <span className="font-black text-white">{value}%</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-white/10">
-                  <div className="h-full rounded-full" style={{ width: `${b}%`, background: c }} />
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${value}%`, background: color }}
+                  />
                 </div>
               </div>
             ))}
@@ -1064,17 +1073,22 @@ function CinemaMapPage({ watchedFilms }) {
         </Card>
 
         <Card className="p-5">
-          <p className="text-xs font-black uppercase tracking-[.3em] text-[#f0c46b]">Map Summary</p>
+          <p className="text-xs font-black uppercase tracking-[.3em] text-[#f0c46b]">
+            Map Summary
+          </p>
           <div className="mt-4 grid grid-cols-2 gap-3">
             {[
-              ["기록한 영화", 512],
-              ["선호 감독", 41],
-              ["탐험 국가", 28],
-              ["참여 영화제", 15],
-            ].map(([a, b]) => (
-              <div key={a} className="rounded-2xl border border-white/10 bg-white/[.03] p-4">
-                <p className="text-2xl font-black text-white">{b}</p>
-                <p className="text-xs text-zinc-500">{a}</p>
+              ["기록한 영화", mapFilms.length],
+              ["선호 감독", "-"],
+              ["탐험 국가", "-"],
+              ["참여 영화제", "-"],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="rounded-2xl border border-white/10 bg-white/[.03] p-4"
+              >
+                <p className="text-2xl font-black text-white">{value}</p>
+                <p className="text-xs text-zinc-500">{label}</p>
               </div>
             ))}
           </div>
@@ -1084,99 +1098,118 @@ function CinemaMapPage({ watchedFilms }) {
       <Card className="relative min-h-[650px] overflow-hidden p-5">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-black tracking-[.18em] text-white">CINEMA MAP</h2>
-            <p className="mt-1 text-sm text-zinc-500">실제 국가 좌표 위에 해당 국가의 영화를 표시합니다.</p>
+            <h2 className="text-3xl font-black tracking-[.18em] text-white">
+              CINEMA MAP
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              실제 국가 좌표 위에 내가 기록한 영화가 표시됩니다.
+            </p>
           </div>
+
           <div className="hidden gap-2 md:flex">
-            {["GLOBE", "GRAPH", "TIMELINE"].map((v, i) => (
-              <button key={v} className={cls("rounded-xl border px-4 py-2 text-xs font-black", i === 0 ? "border-[#f0c46b] bg-[#f0c46b]/10 text-[#f0c46b]" : "border-white/10 text-zinc-500")}>
-                {v}
+            {["GLOBE", "GRAPH", "TIMELINE"].map((item, index) => (
+              <button
+                key={item}
+                className={cls(
+                  "rounded-xl border px-4 py-2 text-xs font-black",
+                  index === 0
+                    ? "border-[#f0c46b] bg-[#f0c46b]/10 text-[#f0c46b]"
+                    : "border-white/10 text-zinc-500"
+                )}
+              >
+                {item}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="relative h-[560px] overflow-hidden rounded-[32px] border border-white/10 bg-black">
-          <div className="absolute inset-0 starfield opacity-50" />
-          <Canvas camera={{ position: [0, 0, 5.2], fov: 45 }}>
-            <ambientLight intensity={1.4} />
-            <pointLight position={[5, 5, 5]} intensity={2} />
-            <Stars radius={80} depth={50} count={1000} factor={4} fade speed={1} />
-            <Earth mapFilms={mapFilms} />
-            <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
-          </Canvas>
-        </div>
-      </Card>
-
-      <div className="space-y-5">
-  <Card className="p-5">
-    <p className="text-xs font-black uppercase tracking-[.3em] text-[#f0c46b]">
-      Intersections
-    </p>
-    <h3 className="mt-2 text-xl font-black text-white">교집합 분석</h3>
-
-    <div className="mt-4 space-y-4">
-      {mapFilms.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[.03] p-5 text-sm leading-6 text-zinc-500">
-          아직 기록된 영화가 없습니다. 마이페이지에서 본 영화를 기록하면 이곳에 표시됩니다.
-        </div>
-      ) : (
-        mapFilms.slice(0, 4).map((film) => (
-          <div
-            key={film.id || film.title}
-            className="rounded-2xl border border-white/10 bg-white/[.03] p-3"
-          >
-            <div className="flex items-center gap-3">
-              <MiniPoster
-                title={film.title}
-                color={film.color || "#ff4fa3"}
-                className="h-16 w-12 shrink-0"
-              />
-              <div className="flex-1">
-                <p className="font-black text-white">{film.title}</p>
-                <p className="text-xs text-zinc-500">{film.director}</p>
-              </div>
-              <p
-                className="font-black"
-                style={{ color: film.color || "#ff4fa3" }}
-              >
-                {film.score || "-"}%
+        {mapFilms.length === 0 ? (
+          <div className="grid h-[560px] place-items-center rounded-[32px] border border-white/10 bg-black">
+            <div className="text-center">
+              <Globe2 className="mx-auto text-zinc-700" size={56} />
+              <h3 className="mt-5 text-2xl font-black text-white">
+                아직 시네마 맵이 비어 있습니다.
+              </h3>
+              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-zinc-500">
+                마이페이지에서 본 영화를 기록하면 해당 국가 위에 영화 마커가
+                생성됩니다.
               </p>
             </div>
           </div>
-        ))
-      )}
-    </div>
-  </Card>
-
-  <Card className="p-5">
-    <PanelTitle title="Similar Users" />
-    <div className="mt-4 space-y-3">
-      {["film_digger_83", "무비토리", "cinephile_j"].map((u, i) => (
-        <div key={u} className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-900" />
-          <div className="flex-1">
-            <p className="text-sm font-black text-white">{u}</p>
-            <p className="text-xs text-zinc-500">취향이 비슷한 사용자</p>
+        ) : (
+          <div className="relative h-[560px] overflow-hidden rounded-[32px] border border-white/10 bg-black">
+            <div className="absolute inset-0 starfield opacity-50" />
+            <Canvas camera={{ position: [0, 0, 5.2], fov: 45 }}>
+              <ambientLight intensity={1.4} />
+              <pointLight position={[5, 5, 5]} intensity={2} />
+              <Stars
+                radius={80}
+                depth={50}
+                count={1000}
+                factor={4}
+                fade
+                speed={1}
+              />
+              <Earth mapFilms={mapFilms} />
+              <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
+            </Canvas>
           </div>
-          <span className="text-sm text-zinc-300">{92 - i * 3}%</span>
-        </div>
-      ))}
-    </div>
-  </Card>
-</div>
+        )}
+      </Card>
+
+      <div className="space-y-5">
+        <Card className="p-5">
+          <p className="text-xs font-black uppercase tracking-[.3em] text-[#f0c46b]">
+            Intersections
+          </p>
+          <h3 className="mt-2 text-xl font-black text-white">교집합 분석</h3>
+
+          <div className="mt-4 space-y-4">
+            {mapFilms.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/[.03] p-5 text-sm leading-6 text-zinc-500">
+                아직 기록된 영화가 없습니다. 마이페이지에서 본 영화를 기록하면
+                이곳에 표시됩니다.
+              </div>
+            ) : (
+              mapFilms.slice(0, 4).map((film) => (
+                <div
+                  key={film.id || film.title}
+                  className="rounded-2xl border border-white/10 bg-white/[.03] p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <MiniPoster
+                      title={film.title}
+                      color={film.color || "#ff4fa3"}
+                      className="h-16 w-12 shrink-0"
+                    />
+                    <div className="flex-1">
+                      <p className="font-black text-white">{film.title}</p>
+                      <p className="text-xs text-zinc-500">{film.director}</p>
+                    </div>
+                    <p
+                      className="font-black"
+                      style={{ color: film.color || "#ff4fa3" }}
+                    >
+                      {film.score || "-"}%
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
 
         <Card className="p-5">
           <PanelTitle title="Similar Users" />
           <div className="mt-4 space-y-3">
-            {["film_digger_83", "무비토리", "cinephile_j"].map((u, i) => (
-              <div key={u} className="flex items-center gap-3">
+            {["film_digger_83", "무비토리", "cinephile_j"].map((userName, index) => (
+              <div key={userName} className="flex items-center gap-3">
                 <div className="h-9 w-9 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-900" />
                 <div className="flex-1">
-                  <p className="text-sm font-black text-white">{u}</p>
+                  <p className="text-sm font-black text-white">{userName}</p>
                   <p className="text-xs text-zinc-500">취향이 비슷한 사용자</p>
                 </div>
-                <span className="text-sm text-zinc-300">{92 - i * 3}%</span>
+                <span className="text-sm text-zinc-300">{92 - index * 3}%</span>
               </div>
             ))}
           </div>
