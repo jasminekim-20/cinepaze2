@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Html, Stars } from "@react-three/drei";
 import {
@@ -100,6 +100,66 @@ const films = [
     tags: ["가족", "윤리", "빈곤"],
   },
 ];
+const profileFilmTemplate = {
+  title: "",
+  director: "",
+  country: "",
+  year: "",
+  rating: "",
+  tags: "",
+  memo: "",
+  status: "봤어요",
+};
+
+function loadLocal(key, fallback) {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveLocal(key, value) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function getTasteStats(watchedFilms) {
+  const tagCount = {};
+  const countryCount = {};
+  const directorCount = {};
+
+  watchedFilms.forEach((film) => {
+    film.tags
+      ?.split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .forEach((tag) => {
+        tagCount[tag] = (tagCount[tag] || 0) + 1;
+      });
+
+    if (film.country) {
+      countryCount[film.country] = (countryCount[film.country] || 0) + 1;
+    }
+
+    if (film.director) {
+      directorCount[film.director] = (directorCount[film.director] || 0) + 1;
+    }
+  });
+
+  const sortObj = (obj) =>
+    Object.entries(obj)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }));
+
+  return {
+    tags: sortObj(tagCount),
+    countries: sortObj(countryCount),
+    directors: sortObj(directorCount),
+  };
+}
 
 const reviewCards = [
   {
@@ -161,6 +221,7 @@ const nav = [
   { id: "map", label: "시네마 맵", icon: Globe2 },
   { id: "info", label: "정보", icon: Trophy },
   { id: "crew", label: "크루", icon: Users },
+  { id: "mypage", label: "마이페이지", icon: Users },
 ];
 
 function cls(...v) {
@@ -198,7 +259,170 @@ function MiniPoster({ title, color = "#a855f7", className = "" }) {
     </div>
   );
 }
+function AuthGate({ user, setUser }) {
+  const [mode, setMode] = useState("login");
+  const [form, setForm] = useState({
+    id: "",
+    password: "",
+    nickname: "",
+  });
 
+  const isSignup = mode === "signup";
+
+  function submit(e) {
+    e.preventDefault();
+
+    if (!form.id.trim() || !form.password.trim()) {
+      alert("아이디와 비밀번호를 입력하세요.");
+      return;
+    }
+
+    const users = loadLocal("cinepaze_users", []);
+
+    if (isSignup) {
+      const exists = users.some((u) => u.id === form.id);
+      if (exists) {
+        alert("이미 존재하는 아이디입니다.");
+        return;
+      }
+
+      const newUser = {
+        id: form.id,
+        password: form.password,
+        nickname: form.nickname || form.id,
+        createdAt: new Date().toLocaleDateString("ko-KR"),
+      };
+
+      const nextUsers = [...users, newUser];
+      saveLocal("cinepaze_users", nextUsers);
+      saveLocal("cinepaze_current_user", newUser);
+      setUser(newUser);
+      return;
+    }
+
+    const found = users.find(
+      (u) => u.id === form.id && u.password === form.password
+    );
+
+    if (!found) {
+      alert("아이디 또는 비밀번호가 맞지 않습니다. 처음이면 회원가입을 해주세요.");
+      return;
+    }
+
+    saveLocal("cinepaze_current_user", found);
+    setUser(found);
+  }
+
+  return (
+    <main className="min-h-screen overflow-hidden bg-[#03050a] text-white">
+      <div className="absolute inset-0 starfield opacity-50" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(168,85,247,.25),transparent_28%),radial-gradient(circle_at_70%_70%,rgba(240,196,107,.12),transparent_28%)]" />
+
+      <section className="relative z-10 mx-auto grid min-h-screen max-w-[1200px] place-items-center px-5">
+        <div className="grid w-full gap-8 lg:grid-cols-[1.1fr_.9fr]">
+          <div className="flex flex-col justify-center">
+            <p className="text-xs font-black uppercase tracking-[.45em] text-[#f0c46b]">
+              Cinepaze
+            </p>
+            <h1 className="mt-5 font-serif text-5xl font-black leading-tight md:text-7xl">
+              본 영화가 쌓이면,
+              <br />
+              취향 지도가 됩니다.
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-8 text-zinc-400">
+              가입 후 본 영화를 기록하세요. 기록한 영화의 국가, 감독, 태그, 리뷰가
+              나의 프로필과 시네마 맵을 구성합니다.
+            </p>
+
+            <div className="mt-10 grid gap-3 sm:grid-cols-3">
+              {[
+                ["1", "영화 기록"],
+                ["2", "취향 파편 생성"],
+                ["3", "시네마 맵 확장"],
+              ].map(([num, text]) => (
+                <div
+                  key={num}
+                  className="rounded-3xl border border-white/10 bg-white/[.035] p-5"
+                >
+                  <p className="text-3xl font-black text-[#f0c46b]">{num}</p>
+                  <p className="mt-2 font-black text-white">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Card className="p-6 md:p-8">
+            <div className="mb-6 flex gap-2">
+              <button
+                onClick={() => setMode("login")}
+                className={cls(
+                  "flex-1 rounded-2xl px-4 py-3 text-sm font-black",
+                  mode === "login"
+                    ? "bg-white text-black"
+                    : "border border-white/10 text-zinc-400"
+                )}
+              >
+                로그인
+              </button>
+              <button
+                onClick={() => setMode("signup")}
+                className={cls(
+                  "flex-1 rounded-2xl px-4 py-3 text-sm font-black",
+                  mode === "signup"
+                    ? "bg-white text-black"
+                    : "border border-white/10 text-zinc-400"
+                )}
+              >
+                회원가입
+              </button>
+            </div>
+
+            <form onSubmit={submit} className="space-y-4">
+              {isSignup && (
+                <input
+                  className="input"
+                  placeholder="닉네임"
+                  value={form.nickname}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, nickname: e.target.value }))
+                  }
+                />
+              )}
+
+              <input
+                className="input"
+                placeholder="아이디"
+                value={form.id}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, id: e.target.value }))
+                }
+              />
+
+              <input
+                className="input"
+                placeholder="비밀번호"
+                type="password"
+                value={form.password}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, password: e.target.value }))
+                }
+              />
+
+              <button className="w-full rounded-2xl bg-gradient-to-r from-[#8b5cf6] to-[#ff4fa3] px-5 py-4 text-sm font-black text-white">
+                {isSignup ? "가입하고 내 취향 지도 만들기" : "로그인"}
+              </button>
+            </form>
+
+            <p className="mt-5 text-center text-xs leading-6 text-zinc-500">
+              현재 버전은 localStorage 기반 프로토타입입니다.  
+              나중에 Supabase 로그인으로 교체하면 됩니다.
+            </p>
+          </Card>
+        </div>
+      </section>
+    </main>
+  );
+}
 function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#03050a]/80 backdrop-blur-2xl">
@@ -766,7 +990,7 @@ function latLonToVector3(lat, lon, radius = 2) {
   ];
 }
 
-function Earth() {
+function Earth({ mapFilms }) {
   return (
     <group>
       <mesh>
@@ -778,20 +1002,28 @@ function Earth() {
         <meshBasicMaterial color="#2563eb" wireframe transparent opacity={0.13} />
       </mesh>
 
-      {films.map((film) => {
+      {mapFilms.map((film) => {
         const [x, y, z] = latLonToVector3(film.lat, film.lon, 2.08);
         return (
-          <group key={film.title} position={[x, y, z]}>
+          <group key={film.id || film.title} position={[x, y, z]}>
             <mesh>
               <sphereGeometry args={[0.045, 16, 16]} />
-              <meshBasicMaterial color={film.color} />
+              <meshBasicMaterial color={film.color || "#ff4fa3"} />
             </mesh>
             <Html distanceFactor={7}>
-              <div className="marker-card" style={{ borderColor: film.color }}>
-                <div className="text-[10px] font-black" style={{ color: film.color }}>
-                  {film.score}
+              <div
+                className="marker-card"
+                style={{ borderColor: film.color || "#ff4fa3" }}
+              >
+                <div
+                  className="text-[10px] font-black"
+                  style={{ color: film.color || "#ff4fa3" }}
+                >
+                  {film.score || 80}
                 </div>
-                <div className="whitespace-nowrap text-[10px] text-white">{film.title}</div>
+                <div className="whitespace-nowrap text-[10px] text-white">
+                  {film.title}
+                </div>
               </div>
             </Html>
           </group>
@@ -801,7 +1033,8 @@ function Earth() {
   );
 }
 
-function CinemaMapPage() {
+function CinemaMapPage({ watchedFilms }) {
+  const mapFilms = watchedFilms.length > 0 ? watchedFilms : [];
   return (
     <div className="grid gap-5 xl:grid-cols-[280px_1fr_340px]">
       <div className="space-y-5">
@@ -869,7 +1102,7 @@ function CinemaMapPage() {
             <ambientLight intensity={1.4} />
             <pointLight position={[5, 5, 5]} intensity={2} />
             <Stars radius={80} depth={50} count={1000} factor={4} fade speed={1} />
-            <Earth />
+            <Earth mapFilms={mapFilms} />
             <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
           </Canvas>
         </div>
@@ -880,7 +1113,26 @@ function CinemaMapPage() {
           <p className="text-xs font-black uppercase tracking-[.3em] text-[#f0c46b]">Intersections</p>
           <h3 className="mt-2 text-xl font-black text-white">교집합 분석</h3>
           <div className="mt-4 space-y-4">
-            {films.slice(0, 4).map((film) => (
+            {mapFilms.length === 0 ? (
+  <div className="rounded-2xl border border-white/10 bg-white/[.03] p-5 text-sm leading-6 text-zinc-500">
+    아직 기록된 영화가 없습니다. 마이페이지에서 본 영화를 기록하면 이곳에 표시됩니다.
+  </div>
+) : (
+  mapFilms.slice(0, 4).map((film) => (
+    <div key={film.id || film.title} className="rounded-2xl border border-white/10 bg-white/[.03] p-3">
+      <div className="flex items-center gap-3">
+        <MiniPoster title={film.title} color={film.color} className="h-16 w-12 shrink-0" />
+        <div className="flex-1">
+          <p className="font-black text-white">{film.title}</p>
+          <p className="text-xs text-zinc-500">{film.director}</p>
+        </div>
+        <p className="font-black" style={{ color: film.color }}>
+          {film.score || "-"}%
+        </p>
+      </div>
+    </div>
+  ))
+)}
               <div key={film.title} className="rounded-2xl border border-white/10 bg-white/[.03] p-3">
                 <div className="flex items-center gap-3">
                   <MiniPoster title={film.title} color={film.color} className="h-16 w-12 shrink-0" />
@@ -914,7 +1166,290 @@ function CinemaMapPage() {
     </div>
   );
 }
+function MyPage({ user, setUser, watchedFilms, setWatchedFilms }) {
+  const [form, setForm] = useState(profileFilmTemplate);
 
+  const stats = getTasteStats(watchedFilms);
+
+  function update(key, value) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function addFilm(e) {
+    e.preventDefault();
+
+    if (!form.title.trim()) {
+      alert("영화 제목은 필수입니다.");
+      return;
+    }
+
+    const newFilm = {
+      ...form,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toLocaleString("ko-KR"),
+      color:
+        form.status === "봤어요"
+          ? "#ff4fa3"
+          : form.status === "보고 싶어요"
+          ? "#60a5fa"
+          : "#f0c46b",
+      lat:
+        form.country === "한국"
+          ? 37.5665
+          : form.country === "일본"
+          ? 35.6762
+          : form.country === "홍콩"
+          ? 22.3193
+          : 20,
+      lon:
+        form.country === "한국"
+          ? 126.978
+          : form.country === "일본"
+          ? 139.6503
+          : form.country === "홍콩"
+          ? 114.1694
+          : 100,
+      score: Number(form.rating || 0) * 20,
+    };
+
+    const next = [newFilm, ...watchedFilms];
+    setWatchedFilms(next);
+    saveLocal(`cinepaze_watched_${user.id}`, next);
+    setForm(profileFilmTemplate);
+  }
+
+  function logout() {
+    localStorage.removeItem("cinepaze_current_user");
+    setUser(null);
+  }
+
+  return (
+    <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
+      <div className="space-y-5">
+        <Card className="p-6">
+          <div className="flex items-center gap-4">
+            <div className="h-20 w-20 rounded-full bg-gradient-to-br from-[#f472b6] to-[#f0c46b]" />
+            <div>
+              <p className="text-3xl font-black text-white">{user.nickname}</p>
+              <p className="text-sm text-zinc-500">@{user.id}</p>
+              <p className="mt-1 text-xs text-zinc-600">
+                가입일 {user.createdAt}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-3 gap-3">
+            <div className="rounded-2xl border border-white/10 bg-white/[.035] p-4">
+              <p className="text-2xl font-black text-white">
+                {watchedFilms.length}
+              </p>
+              <p className="text-xs text-zinc-500">기록 영화</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[.035] p-4">
+              <p className="text-2xl font-black text-white">
+                {stats.tags.length}
+              </p>
+              <p className="text-xs text-zinc-500">취향 태그</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[.035] p-4">
+              <p className="text-2xl font-black text-white">
+                {stats.directors.length}
+              </p>
+              <p className="text-xs text-zinc-500">감독</p>
+            </div>
+          </div>
+
+          <button
+            onClick={logout}
+            className="mt-6 w-full rounded-2xl border border-white/10 bg-white/[.035] px-5 py-3 text-sm font-black text-zinc-300"
+          >
+            로그아웃
+          </button>
+        </Card>
+
+        <Card className="p-6">
+          <PanelTitle title="취향 키워드" />
+          {stats.tags.length === 0 ? (
+            <p className="mt-4 text-sm leading-6 text-zinc-500">
+              아직 취향 키워드가 없습니다. 본 영화를 기록하면 태그가 이곳에
+              쌓입니다.
+            </p>
+          ) : (
+            <div className="mt-5 flex flex-wrap gap-2">
+              {stats.tags.slice(0, 12).map((tag) => (
+                <span
+                  key={tag.name}
+                  className="rounded-full border border-[#a855f7]/30 bg-[#a855f7]/10 px-3 py-2 text-xs font-black text-[#d8b4fe]"
+                >
+                  #{tag.name} {tag.count}
+                </span>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-6">
+          <PanelTitle title="시네마 맵 생성 상태" />
+          <div className="mt-5 h-2 rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[#8b5cf6] to-[#ff4fa3]"
+              style={{
+                width: `${Math.min(watchedFilms.length * 12, 100)}%`,
+              }}
+            />
+          </div>
+          <p className="mt-3 text-sm text-zinc-500">
+            {watchedFilms.length === 0
+              ? "첫 번째 영화를 기록하면 맵이 생성됩니다."
+              : `${watchedFilms.length}개의 기록이 시네마 맵에 반영됩니다.`}
+          </p>
+        </Card>
+      </div>
+
+      <div className="space-y-5">
+        <Card className="p-6">
+          <PageTitle
+            title="MY PAGE"
+            desc="내가 본 영화가 나의 프로필과 취향 지도를 만듭니다."
+          />
+
+          <form onSubmit={addFilm} className="mt-6 grid gap-3 md:grid-cols-2">
+            <input
+              className="input"
+              placeholder="영화 제목"
+              value={form.title}
+              onChange={(e) => update("title", e.target.value)}
+            />
+            <input
+              className="input"
+              placeholder="감독"
+              value={form.director}
+              onChange={(e) => update("director", e.target.value)}
+            />
+            <input
+              className="input"
+              placeholder="국가 예: 한국, 일본, 홍콩"
+              value={form.country}
+              onChange={(e) => update("country", e.target.value)}
+            />
+            <input
+              className="input"
+              placeholder="연도"
+              value={form.year}
+              onChange={(e) => update("year", e.target.value)}
+            />
+            <select
+              className="input"
+              value={form.rating}
+              onChange={(e) => update("rating", e.target.value)}
+            >
+              <option value="">평점 선택</option>
+              <option value="5">5점</option>
+              <option value="4.5">4.5점</option>
+              <option value="4">4점</option>
+              <option value="3.5">3.5점</option>
+              <option value="3">3점</option>
+              <option value="2">2점</option>
+              <option value="1">1점</option>
+            </select>
+            <select
+              className="input"
+              value={form.status}
+              onChange={(e) => update("status", e.target.value)}
+            >
+              <option value="봤어요">봤어요</option>
+              <option value="보고 싶어요">보고 싶어요</option>
+              <option value="다시 볼 영화">다시 볼 영화</option>
+            </select>
+            <input
+              className="input md:col-span-2"
+              placeholder="태그 예: 고독, 가족, 계급, 기억"
+              value={form.tags}
+              onChange={(e) => update("tags", e.target.value)}
+            />
+            <textarea
+              className="input resize-none md:col-span-2"
+              rows={4}
+              placeholder="짧은 감상 메모"
+              value={form.memo}
+              onChange={(e) => update("memo", e.target.value)}
+            />
+            <button className="md:col-span-2 rounded-2xl bg-white px-5 py-4 text-sm font-black text-black">
+              내 영화 기록하기
+            </button>
+          </form>
+        </Card>
+
+        <Card className="p-6">
+          <PanelTitle title="내가 본 영화" />
+
+          {watchedFilms.length === 0 ? (
+            <div className="mt-6 grid min-h-[260px] place-items-center rounded-3xl border border-white/10 bg-white/[.025] p-10 text-center">
+              <div>
+                <Film className="mx-auto text-zinc-600" size={42} />
+                <p className="mt-4 text-xl font-black text-white">
+                  아직 기록한 영화가 없습니다.
+                </p>
+                <p className="mt-2 text-sm text-zinc-500">
+                  첫 영화를 기록하면 취향 맵이 생성됩니다.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {watchedFilms.map((film) => (
+                <div
+                  key={film.id}
+                  className="rounded-3xl border border-white/10 bg-white/[.035] p-4"
+                >
+                  <div className="flex gap-4">
+                    <MiniPoster
+                      title={film.title}
+                      color={film.color}
+                      className="h-24 w-20 shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-lg font-black text-white">
+                        {film.title}
+                      </p>
+                      <p className="text-xs text-zinc-500">
+                        {film.director} · {film.country} · {film.year}
+                      </p>
+                      <p className="mt-2 text-sm text-[#f0c46b]">
+                        ★ {film.rating || "-"} · {film.status}
+                      </p>
+                    </div>
+                  </div>
+
+                  {film.memo && (
+                    <p className="mt-4 line-clamp-2 text-sm leading-6 text-zinc-400">
+                      {film.memo}
+                    </p>
+                  )}
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {film.tags
+                      ?.split(",")
+                      .map((tag) => tag.trim())
+                      .filter(Boolean)
+                      .map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-white/[.06] px-2 py-1 text-[10px] text-zinc-400"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}
 function MatchPage() {
   const [messages, setMessages] = useState([
     { from: "other", film: films[0], note: "이 영화 좋아하실 것 같아요." },
@@ -1111,17 +1646,40 @@ function PanelTitle({ title }) {
 
 export default function Page() {
   const [page, setPage] = useState("home");
+  const [user, setUser] = useState(null);
+  const [watchedFilms, setWatchedFilms] = useState([]);
+
+  useEffect(() => {
+  const savedUser = loadLocal("cinepaze_current_user", null);
+  if (savedUser) {
+    setUser(savedUser);
+    setWatchedFilms(loadLocal(`cinepaze_watched_${savedUser.id}`, []));
+  }
+}, []);
+
+  if (!user) {
+    return <AuthGate user={user} setUser={setUser} />;
+  }
 
   const current = useMemo(() => {
     if (page === "home") return <HomePage setPage={setPage} />;
     if (page === "match") return <MatchPage />;
     if (page === "digging") return <DiggingPage />;
     if (page === "reviews") return <ReviewsPage />;
-    if (page === "map") return <CinemaMapPage />;
+    if (page === "map") return <CinemaMapPage watchedFilms={watchedFilms} />;
     if (page === "info") return <InfoPage />;
     if (page === "crew") return <CrewPage />;
+    if (page === "mypage")
+      return (
+        <MyPage
+          user={user}
+          setUser={setUser}
+          watchedFilms={watchedFilms}
+          setWatchedFilms={setWatchedFilms}
+        />
+      );
     return <HomePage setPage={setPage} />;
-  }, [page]);
+  }, [page, watchedFilms, user]);
 
   return (
     <main className="min-h-screen bg-[#03050a] text-white">
